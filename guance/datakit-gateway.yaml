@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: otel-demo-yww-20260325
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-demo-datakit-conf
+  namespace: otel-demo-yww-20260325
+data:
+  opentelemetry.conf: |-
+    [[inputs.opentelemetry]]
+      [inputs.opentelemetry.grpc]
+        addr = "0.0.0.0:4317"
+      [inputs.opentelemetry.http]
+        addr = "0.0.0.0:4318"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-demo-datakit
+  namespace: otel-demo-yww-20260325
+spec:
+  selector:
+    app: otel-demo-datakit
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: api
+      port: 9529
+      targetPort: 9529
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-demo-datakit
+  namespace: otel-demo-yww-20260325
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-demo-datakit
+  template:
+    metadata:
+      labels:
+        app: otel-demo-datakit
+    spec:
+      containers:
+        - name: datakit
+          image: pubrepo.guance.com/datakit/datakit:1.81.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ENV_DATAWAY
+              value: https://openway.guance.com?token=tkn_8973c6583e374948bfa814403a9c9f7b
+            - name: ENV_DEFAULT_ENABLED_INPUTS
+              value: opentelemetry
+            - name: ENV_HTTP_LISTEN
+              value: 0.0.0.0:9529
+            - name: ENV_INPUT_OTEL_CUSTOMER_TAGS
+              value: '["project","env","cluster_name_k8s","k8s.cluster.name","k8s.namespace.name"]'
+            - name: ENV_NAMESPACE
+              value: otel-demo-yww-20260325
+            - name: ENV_GLOBAL_HOST_TAGS
+              value: host=otel-demo-datakit
+          ports:
+            - containerPort: 4317
+              name: otlp-grpc
+            - containerPort: 4318
+              name: otlp-http
+            - containerPort: 9529
+              name: api
+          readinessProbe:
+            httpGet:
+              path: /v1/ping
+              port: 9529
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /v1/ping
+              port: 9529
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: datakit-conf
+              mountPath: /usr/local/datakit/conf.d/opentelemetry/opentelemetry.conf
+              subPath: opentelemetry.conf
+      volumes:
+        - name: datakit-conf
+          configMap:
+            name: otel-demo-datakit-conf

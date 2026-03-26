@@ -1,0 +1,69 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+ARG NODE_IMAGE=docker.m.daocloud.io/library/node:24-slim
+ARG RUNTIME_IMAGE=docker.m.daocloud.io/library/node:24-slim
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+
+FROM ${NODE_IMAGE} AS builder
+ARG NPM_REGISTRY
+
+WORKDIR /app
+
+COPY ./src/frontend/package.json package.json
+COPY ./src/frontend/package-lock.json package-lock.json
+
+RUN npm config set registry ${NPM_REGISTRY} && npm ci
+
+COPY ./src/frontend/components/ components/
+COPY ./src/frontend/gateways/ gateways/
+COPY ./src/frontend/pages/ pages/
+COPY ./src/frontend/protos/ protos/
+COPY ./src/frontend/providers/ providers/
+COPY ./src/frontend/services/ services/
+COPY ./src/frontend/styles/ styles/
+COPY ./src/frontend/types/ types/
+
+COPY ./src/frontend/utils/enums/ utils/enums/
+COPY ./src/frontend/utils/rum/ utils/rum/
+COPY ./src/frontend/utils/telemetry/ utils/telemetry/
+COPY ./src/frontend/utils/imageLoader.js utils/imageLoader.js
+COPY ./src/frontend/utils/Request.ts utils/Request.ts
+
+COPY ./src/frontend/next.config.js next.config.js
+COPY ./src/frontend/tsconfig.json tsconfig.json
+
+RUN npm run build
+
+# -----------------------------------------------------------------------------
+
+FROM ${NODE_IMAGE} AS deps
+ARG NPM_REGISTRY
+
+WORKDIR /app
+
+COPY ./src/frontend/package.json package.json
+COPY ./src/frontend/package-lock.json package-lock.json
+
+RUN npm config set registry ${NPM_REGISTRY} && npm ci --omit=dev
+
+# -----------------------------------------------------------------------------
+
+FROM ${RUNTIME_IMAGE}
+
+WORKDIR /app
+
+COPY --from=builder /app/.next/standalone/ ./
+COPY --from=builder /app/.next/static/ .next/static/
+
+COPY --from=deps /app/node_modules/ node_modules/
+
+COPY ./src/frontend/public/ public/
+
+COPY ./src/frontend/utils/telemetry/Instrumentation.js Instrumentation.js
+
+USER node
+
+EXPOSE 8080
+
+CMD ["node", "--require=./Instrumentation.js", "server.js"]
