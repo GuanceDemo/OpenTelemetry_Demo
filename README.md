@@ -1,6 +1,57 @@
 <!-- markdownlint-disable-next-line -->
 # <img src="https://opentelemetry.io/img/logos/opentelemetry-logo-nav.png" alt="OTel logo" width="45"> OpenTelemetry Demo
 
+## Guance Integration Fork
+
+This repository is a Guance-oriented fork of the official OpenTelemetry Demo.
+It is used to demonstrate how to build, package, deploy, and verify the
+OpenTelemetry Astronomy Shop with Guance integration in real environments.
+
+Compared with the upstream project, this fork focuses on:
+
+- Integrating **RUM + APM + Logs** with Guance
+- Preserving the complete multi-language demo topology
+- Supporting **source build -> image packaging -> Kubernetes deployment**
+- Providing reusable Guance deployment files and delivery documentation
+
+## Repository Guide
+
+- Source code entry: `src/`
+- Guance deployment assets: `guance/`
+- Kubernetes manifest reference: `kubernetes/`
+- Demo architecture and local compose assets: project root
+
+Recommended reading order:
+
+1. `guance/source-build-rum-apm-log-deploy.md`
+2. `guance/otel-demo-guance-best-practice.md`
+3. `guance/values-shared-cluster.yaml`
+4. `guance/datakit-gateway.yaml`
+
+## Guance Documents
+
+- Best practice: `guance/otel-demo-guance-best-practice.md`
+- Source build and deployment guide: `guance/source-build-rum-apm-log-deploy.md`
+- Shared-cluster Helm values: `guance/values-shared-cluster.yaml`
+- DataKit gateway manifest: `guance/datakit-gateway.yaml`
+
+## Fork Highlights
+
+- Browser RUM is injected in the frontend with Guance Web SDK
+- Frontend traces continue exporting through `/otlp-http/v1/traces`
+- Backend traces, metrics, and logs continue exporting through OpenTelemetry Collector
+- Collector forwards data to DataKit, then to Guance DataWay
+
+## Delivery Targets
+
+This fork is intended for:
+
+- Guance solution demos
+- Customer POC environments
+- Multi-language observability verification
+- OpenTelemetry to Guance integration showcases
+
+
 [![Slack](https://img.shields.io/badge/slack-@cncf/otel/demo-brightgreen.svg?logo=slack)](https://cloud-native.slack.com/archives/C03B4CWV4DA)
 [![Version](https://img.shields.io/github/v/release/open-telemetry/opentelemetry-demo?color=blueviolet)](https://github.com/open-telemetry/opentelemetry-demo/releases)
 [![Commits](https://img.shields.io/github/commits-since/open-telemetry/opentelemetry-demo/latest?color=ff69b4&include_prereleases)](https://github.com/open-telemetry/opentelemetry-demo/graphs/commit-activity)
